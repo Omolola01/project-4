@@ -1,0 +1,285 @@
+# Mean Stack Implementation
+
+Create your instance and connect to Virtual machine
+## Installing Node js
+
+`sudo apt update`
+
+`sudo apt upgrade`
+
+To add certificates
+
+`sudo apt -y install curl dirmngr apt-transport-https lsb-release ca-certificates`
+
+` curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -`
+
+`sudo apt install -y nodejs`
+
+`sudo apt install -y nodejs` To install Node js
+
+## Install MongoDB
+
+ ### Install dependecies
+
+`sudo apt update`
+
+` sudo apt install dirmngr gnupg apt-transport-https ca-certificates software-properties-common`
+
+### Download and add the MongoDB GPG key
+
+`wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add -`
+
+### Create a list for MongoDB
+
+`echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list`
+
+`apt-get update` To update the local database
+
+`sudo apt-get install -y mongodb-org` After running this command and you get an error, run the following command
+
+`echo "deb http://security.ubuntu.com/ubuntu focal-security main" | sudo tee /etc/apt/sources.list.d/focal-security.list`
+
+`sudo apt-get update`
+
+`sudo apt-get install libssl1.1`
+
+
+`sudo apt-get install -y mongodb-org`
+
+`systemctl start mongod`
+
+If you see autheticatio required, create a password for virtual machine by `sudo -i`, then  `sudo passwd ubuntu`
+
+`systemctl start mongod`
+
+`sudo systemctl status mongodb`
+
+![Mogodb-status](./Images/mongodb-run.PNG)
+
+### For trouble shooting
+`sudo systemctl daemon-reload` Run this command to reload the daemon
+
+`sudo systemctl start mongod`  restart the mongod service
+
+`sudo systemctl status mongod` To verify that MongoDB has started
+
+`sudo systemctl enable mongod` To ensure that MongoDB will start following a system reboot
+
+### Install Npm
+
+`sudo apt install -y npm`
+
+`sudo npm install body-parser` To install body-parser package
+
+Create a folder called Books and enter the folder `mkdir Books && cd Books`
+`npm init` To initialize npm
+
+ create a file server.js and write into the file with nano or vim`vi server.js or nano server.js`
+
+ ```
+{
+  var express = require('express');
+var bodyParser = require('body-parser');
+var app = express();
+app.use(express.static(__dirname + '/public'));
+app.use(bodyParser.json());
+require('./apps/routes')(app);
+app.set('port', 3300);
+app.listen(app.get('port'), function() {
+    console.log('Server up: http://localhost:' + app.get('port'));
+});
+}
+```
+### Install express and set up routes to server
+
+`sudo npm install express mongoose`
+
+`mkdir apps && cd apps`
+
+Create a file called routes.js in apps directory and write in it
+
+`vi routes.js or nano routes.js` 
+
+```
+{
+  var Book = require('./models/book');
+module.exports = function(app) {
+  app.get('/book', function(req, res) {
+    Book.find({}, function(err, result) {
+      if ( err ) throw err;
+      res.json(result);
+    });
+  }); 
+  app.post('/book', function(req, res) {
+    var book = new Book( {
+      name:req.body.name,
+      isbn:req.body.isbn,
+      author:req.body.author,
+      pages:req.body.pages
+    });
+    book.save(function(err, result) {
+      if ( err ) throw err;
+      res.json( {
+        message:"Successfully added book",
+        book:result
+      });
+    });
+  });
+  app.delete("/book/:isbn", function(req, res) {
+    Book.findOneAndRemove(req.query, function(err, result) {
+      if ( err ) throw err;
+      res.json( {
+        message: "Successfully deleted the book",
+        book: result
+      });
+    });
+  });
+  var path = require('path');
+  app.get('*', function(req, res) {
+    res.sendfile(path.join(__dirname + '/public', 'index.html'));
+  });
+};
+}
+```
+In apps directory, create a folder named models and enter the folder
+
+`mkdir models && cd models`
+
+Create a file book.js
+
+`vi book.js or nano books.js`
+
+```
+{
+ var mongoose = require('mongoose');
+var dbHost = 'mongodb://localhost:27017/test';
+mongoose.connect(dbHost);
+mongoose.connection;
+mongoose.set('debug', true);
+var bookSchema = mongoose.Schema( {
+  name: String,
+  isbn: {type: String, index: true},
+  author: String,
+  pages: Number
+});
+var Book = mongoose.model('Book', bookSchema);
+module.exports = mongoose.model('Book', bookSchema); 
+}
+```
+
+To access routes with angularjs
+
+`cd ../..` to go back to Books
+
+`mkdir public && cd public`
+
+`vi script.js` create a file named script.js and write in it
+
+```
+{
+  var app = angular.module('myApp', []);
+app.controller('myCtrl', function($scope, $http) {
+  $http( {
+    method: 'GET',
+    url: '/book'
+  }).then(function successCallback(response) {
+    $scope.books = response.data;
+  }, function errorCallback(response) {
+    console.log('Error: ' + response);
+  });
+  $scope.del_book = function(book) {
+    $http( {
+      method: 'DELETE',
+      url: '/book/:isbn',
+      params: {'isbn': book.isbn}
+    }).then(function successCallback(response) {
+      console.log(response);
+    }, function errorCallback(response) {
+      console.log('Error: ' + response);
+    });
+  };
+  $scope.add_book = function() {
+    var body = '{ "name": "' + $scope.Name + 
+    '", "isbn": "' + $scope.Isbn +
+    '", "author": "' + $scope.Author + 
+    '", "pages": "' + $scope.Pages + '" }';
+    $http({
+      method: 'POST',
+      url: '/book',
+      data: body
+    }).then(function successCallback(response) {
+      console.log(response);
+    }, function errorCallback(response) {
+      console.log('Error: ' + response);
+    });
+  };
+});
+}
+```
+
+In Public directory,create a file named index.html and write in it 
+
+`nano index.html`
+
+```
+{
+  <!doctype html>
+<html ng-app="myApp" ng-controller="myCtrl">
+  <head>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+    <script src="script.js"></script>
+  </head>
+  <body>
+    <div>
+      <table>
+        <tr>
+          <td>Name:</td>
+          <td><input type="text" ng-model="Name"></td>
+        </tr>
+        <tr>
+          <td>Isbn:</td>
+          <td><input type="text" ng-model="Isbn"></td>
+        </tr>
+        <tr>
+          <td>Author:</td>
+          <td><input type="text" ng-model="Author"></td>
+        </tr>
+        <tr>
+          <td>Pages:</td>
+          <td><input type="number" ng-model="Pages"></td>
+        </tr>
+      </table>
+      <button ng-click="add_book()">Add</button>
+    </div>
+    <hr>
+    <div>
+      <table>
+        <tr>
+          <th>Name</th>
+          <th>Isbn</th>
+          <th>Author</th>
+          <th>Pages</th>
+
+        </tr>
+        <tr ng-repeat="book in books">
+          <td>{{book.name}}</td>
+          <td>{{book.isbn}}</td>
+          <td>{{book.author}}</td>
+          <td>{{book.pages}}</td>
+
+          <td><input type="button" value="Delete" data-ng-click="del_book(book)"></td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>
+}
+```
+`cd ..` to go bak to Books
+ 
+`node server.js` to start the server
+
+In your instance, edit inbound rule- open TCP port 3300
+
+`curl -s http://localhost:3300`
+
